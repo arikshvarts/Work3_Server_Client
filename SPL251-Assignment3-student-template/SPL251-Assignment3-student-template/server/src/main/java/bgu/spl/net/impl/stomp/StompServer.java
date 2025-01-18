@@ -2,7 +2,7 @@ package bgu.spl.net.impl.stomp;
 
 import bgu.spl.net.srv.Server;
 import bgu.spl.net.impl.stomp.StompProtocol; 
-
+import bgu.spl.net.impl.stomp.StompEncoderDecoder;
 public class StompServer {
 
     public static void main(String[] args) {

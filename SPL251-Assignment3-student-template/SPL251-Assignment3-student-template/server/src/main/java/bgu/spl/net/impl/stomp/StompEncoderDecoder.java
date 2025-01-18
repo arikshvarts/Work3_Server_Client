@@ -7,7 +7,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-public class StompEncoderDecoder implements MessageEncoderDecoder<Message> {
+public class StompEncoderDecoder<Message> implements MessageEncoderDecoder<Message> {
     private byte[] bytes = new byte[1 << 10]; // Initial buffer size: 1KB
     private int len = 0;
 
