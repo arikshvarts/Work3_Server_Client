@@ -4,38 +4,41 @@ import java.util.Map;
 
 import bgu.spl.net.api.MessagingProtocol;
 import bgu.spl.net.srv.Connections;
+import bgu.spl.net.impl.stomp.Message;;
 
-public class StompProtocol {
+
+public class StompProtocol<T> implements MessagingProtocol<T> {
     private boolean shouldTerminate = false;
-    private Connections<Message> connections;
+    private Connections<T> connections;
     private int connectionId;
+     
     
-    public void start(int connectionId, Connections<Message> connections){
+    public void start(int connectionId, Connections<T> connections){
         this.connectionId = connectionId;
         this.connections = connections;
     }
     
-    
-    public Message process(Message msg){
-        switch (msg.getCommand()) {
+    public T process(T msg){
+        Message frame = (Message)msg;
+        switch (frame.getCommand()) {
             case "CONNECT":
-                handleConnect(msg);
+                handleConnect(frame);
                 break;
 
             case "SEND":
-                handleSend(msg);
+                handleSend(frame);
                 break;
 
             case "SUBSCRIBE":
-                handleSubscribe(msg);
+                handleSubscribe(frame);
                 break;
 
             case "UNSUBSCRIBE":
-                handleUnsubscribe(msg);
+                handleUnsubscribe(frame);
                 break;
 
             case "DISCONNECT":
-                handleDisconnect(msg);
+                handleDisconnect(frame);
                 break;
 
             default:
@@ -45,7 +48,7 @@ public class StompProtocol {
 
     }
 
-    
+    @Override
     public boolean shouldTerminate(){
         return shouldTerminate;
     }
@@ -57,7 +60,7 @@ public class StompProtocol {
         HashMap<String, String> headers = new HashMap();
         headers.put("header1", "Version : 1.2"); //should version be generic?
         Message Connected_Frame = new Message("CONNECTED", null, "~@");
-        
+
     }
 
     public void handleDisconnect(Message msg){
