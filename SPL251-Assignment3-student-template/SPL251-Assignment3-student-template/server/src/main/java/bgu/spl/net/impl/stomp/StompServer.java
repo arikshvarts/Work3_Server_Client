@@ -17,14 +17,14 @@ public class StompServer {
 
             if (mode.equalsIgnoreCase("tpc")) {
                 // Start the server in Thread-Per-Client mode
-                Server.threadPerClient(
+                StompServerInterface.StompTPCServer(
                         port, // Port number
                         StompProtocol::new, // Protocol factory
                         StompEncoderDecoder::new // Encoder-decoder factory
                 ).serve();
             } else if (mode.equalsIgnoreCase("reactor")) {
                 // Start the server in Reactor mode
-                Server.reactor(
+                StompServerInterface.StompReactor(
                         Runtime.getRuntime().availableProcessors(), // Number of threads
                         port, // Port number
                         StompProtocol::new, // Protocol factory
