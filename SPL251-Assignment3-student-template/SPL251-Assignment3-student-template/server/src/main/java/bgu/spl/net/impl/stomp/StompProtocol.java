@@ -3,11 +3,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 import bgu.spl.net.api.MessagingProtocol;
+import bgu.spl.net.api.StompMessagingProtocol;
 import bgu.spl.net.srv.Connections;
 import bgu.spl.net.impl.stomp.Message;;
 
 
-public class StompProtocol<T> implements MessagingProtocol<T> {
+public class StompProtocol<T> implements StompMessagingProtocol<T> {
     private boolean shouldTerminate = false;
     private Connections<T> connections;
     private int connectionId;
@@ -18,7 +19,7 @@ public class StompProtocol<T> implements MessagingProtocol<T> {
         this.connections = connections;
     }
     
-    public T process(T msg){
+    public void process(T msg){
         Message frame = (Message)msg;
         switch (frame.getCommand()) {
             case "CONNECT":
@@ -44,7 +45,6 @@ public class StompProtocol<T> implements MessagingProtocol<T> {
             default:
                 // sendError("Unknown command: " + msg.getCommand());
         }
-        return null;
 
     }
 
