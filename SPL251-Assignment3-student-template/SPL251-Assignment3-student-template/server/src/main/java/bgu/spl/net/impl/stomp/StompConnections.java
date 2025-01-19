@@ -85,4 +85,12 @@ public class StompConnections<T> implements Connections<T> {
     public void registerConnection(int connectionId, ConnectionHandler<T> handler) {
         clients.put(connectionId, handler);
     }
+
+    public boolean isSubscribed(int connectionId, String channel) {
+        CopyOnWriteArrayList<Integer> subscribers = subscriptions.get(channel);
+        if(subscribers == null){return false;}
+        else{
+            return subscribers.contains(connectionId);
+        }
+    }
 }
