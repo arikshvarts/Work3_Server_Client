@@ -130,7 +130,48 @@ public class StompProtocol<T> implements StompMessagingProtocol<T> {
     }
 
     public void handleSubscribe(Message msg){
-        
+        String destination = msg.getHeaders().get("destination");
+        String subscriptionIdStr = msg.getHeaders().get("id");
+
+        if (destination == null || subscriptionIdStr == null) {
+        // Send ERROR frame for missing headers
+        HashMap<String, String> errorHeaders = new HashMap<>();
+        errorHeaders.put("message", "Missing 'destination' or 'id' header in SUBSCRIBE frame");
+        Message errorFrame = new Message("ERROR", errorHeaders, null);
+        connections.send(connectionId, (T) errorFrame.toString());
+        connections.disconnect(connectionId);
+        shouldTerminate = true;
+        return;
+        }
+
+            int subscriptionId;
+        try {
+            subscriptionId = Integer.parseInt(subscriptionIdStr);
+        } catch (NumberFormatException e) {
+            // Send ERROR frame for invalid subscription ID
+            HashMap<String, String> errorHeaders = new HashMap<>();
+            errorHeaders.put("message", "Invalid 'id' in SUBSCRIBE frame: " + subscriptionIdStr);
+            Message errorFrame = new Message("ERROR", errorHeaders, null);
+            connections.send(connectionId, (T) errorFrame.toString());
+            connections.disconnect(connectionId);
+            shouldTerminate = true;
+            return;
+        }
+
+        // Check if already subscribed
+        if (!((StompConnections<T>) connections).subscribe(destination, connectionId, subscriptionId)) {
+            //if it enter the if, the subscribe returned false - already subscribe
+            // Send ERROR frame for duplicate subscription
+            HashMap<String, String> errorHeaders = new HashMap<>();
+            errorHeaders.put("message", "Client is already subscribed to " + destination + " with subscription ID " + subscriptionId);
+            Message errorFrame = new Message("ERROR", errorHeaders, null);
+            connections.send(connectionId, (T) errorFrame.toString());
+            return; // No need to disconnect, just inform the client
+        }
+//if didnt enter the last if, subscribe returned true - calid SUBSCRIBE frame, connections.subscribed handled the subscription
+
+
+
     }
 
     public void handleUnsubscribe(Message msg){
