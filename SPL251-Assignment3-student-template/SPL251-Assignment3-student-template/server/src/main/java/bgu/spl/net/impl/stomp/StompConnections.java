@@ -9,13 +9,17 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class StompConnections<T> implements Connections<T> {
     // Maps connection IDs to connection handlers
     private final ConcurrentMap<Integer, ConnectionHandler<T>> clients = new ConcurrentHashMap<>();
     // Maps destinations (topics/queues) to lists of subscribed connection IDs
     private final ConcurrentMap<String, CopyOnWriteArrayList<Integer>> subscriptions = new ConcurrentHashMap<>();
-
+        private static final AtomicInteger messageIDCounter = new AtomicInteger(0);
+        //subscriptionsId key - connectionId and value - hashmap that maps each topic to its subscriptionid of this client
+        private final ConcurrentMap<Integer, ConcurrentMap<String, Integer>> subscriptionsId = new ConcurrentHashMap<>();
+        //we chhose the value be map of topic -> subid and not subid -> topic for efficiency in check double subscribe but can be upside down
     @Override
     public boolean send(int connectionId, T message) {
         // Sends a message to a specific client
@@ -56,9 +60,15 @@ public class StompConnections<T> implements Connections<T> {
         }
     }
 
-    public boolean subscribe(String destination, int connectionId) {
+    public boolean subscribe(String destination, int connectionId, int subscriptionId) {
+        ConcurrentMap<String,Integer> clientSubscriptions = subscriptionsId.computeIfAbsent(connectionId, key -> new ConcurrentHashMap<>());
+        if (clientSubscriptions.containsKey(destination)) {
+        System.out.println("Client " + connectionId + " is already subscribed to destination " + destination + " with subscriptionId " + subscriptionId);
+        return false; // Already subscribed
+        }
         // Subscribes a client to a destination
         subscriptions.computeIfAbsent(destination, key -> new CopyOnWriteArrayList<>()).add(connectionId);
+        subscriptionsId.computeIfAbsent(connectionId, key -> new ConcurrentHashMap<>()).put(destination, subscriptionId);
         return true;
     }
 
@@ -92,5 +102,14 @@ public class StompConnections<T> implements Connections<T> {
         else{
             return subscribers.contains(connectionId);
         }
+    }
+
+    public String generateMessageId() {
+        //increase by one our atomic counter
+        return String.valueOf(messageIDCounter.incrementAndGet());
+    }
+
+    public ConcurrentMap<Integer, ConcurrentMap<String, Integer>> get_subscriptionsId(){
+        return subscriptionsId;
     }
 }
