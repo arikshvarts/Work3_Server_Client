@@ -51,7 +51,7 @@ public class StompProtocol<T> implements StompMessagingProtocol<T> {
         HashMap<String, String> receiptHeaders = new HashMap<>();
         receiptHeaders.put("receipt-id", receiptId);
         Message receiptFrame = new Message("RECEIPT", receiptHeaders, null);
-        connections.send(connectionId, (T) receiptFrame.toString());
+        ((StompConnections<T>) connections).send(connectionId, (T) receiptFrame.toString());
     }
 
     }
@@ -78,7 +78,7 @@ public class StompProtocol<T> implements StompMessagingProtocol<T> {
             "Did not specify a supported version. Only version 1.2 is supported.";
             Message errorFrame = new Message("ERROR", errorHeaders , errorBody);
 
-            connections.send(connectionId, (T) errorFrame);
+            ((StompConnections<T>) connections).send(connectionId, (T) errorFrame);
             connections.disconnect(connectionId); // Close the connection
             shouldTerminate = true;
 
@@ -88,7 +88,7 @@ public class StompProtocol<T> implements StompMessagingProtocol<T> {
         connectedHeaders.put("version", clientVersion); // Negotiated version
         Message connectedFrame = new Message("CONNECTED", connectedHeaders, null);
         //send the CONNECTED frame to the specific cliend tried to connect
-        connections.send(connectionId, (T) connectedFrame); 
+        ((StompConnections<T>) connections).send(connectionId, (T) connectedFrame); 
         }
 
     }
@@ -125,7 +125,7 @@ public class StompProtocol<T> implements StompMessagingProtocol<T> {
         messageHeaders.put("message-id: ", ((StompConnections<T>)connections).generateMessageId());
         Message messageFrame = new Message("Message", messageHeaders, msg.getBody());
         //sending the message the client had to the channel
-        connections.send(topic, (T)messageFrame);
+        ((StompConnections<T>) connections).send(topic, (T)messageFrame);
         }
     }
 
