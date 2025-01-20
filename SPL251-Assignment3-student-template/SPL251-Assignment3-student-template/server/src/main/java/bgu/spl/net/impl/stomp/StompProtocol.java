@@ -121,11 +121,11 @@ public class StompProtocol<T> implements StompMessagingProtocol<T> {
         else{
         String message = msg.getBody();
         HashMap<String, String> messageHeaders = new HashMap<>();
-        //Nishar Lehavin where to add subscription id and message id!
-        
-        //LEHAMSHICH
-        // messageHeaders.put("message-id", "");
-        // connections.send(topic, );
+        messageHeaders.put("subscription : ",((StompConnections<T>)connections).get_subscriptionsId().get(topic).toString());
+        messageHeaders.put("message-id: ", ((StompConnections<T>)connections).generateMessageId());
+        Message messageFrame = new Message("Message", messageHeaders, msg.getBody());
+        //sending the message the client had to the channel
+        connections.send(topic, (T)messageFrame);
         }
     }
 
