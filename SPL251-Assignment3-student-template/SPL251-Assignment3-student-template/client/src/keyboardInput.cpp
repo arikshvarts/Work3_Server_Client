@@ -56,7 +56,17 @@ class keyboardThread{
             }
 
             isActive = false;
-        } else {
+        } 
+
+        else if (command == "exit") {//unsubscribe
+        }
+
+        else if (command == "summary") {
+        }
+        
+        else if (command == "report") {//inside here send also
+        }
+        else {
             std::cerr << "Unknown command: " << command << std::endl;
         }
     }
