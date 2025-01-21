@@ -17,8 +17,8 @@ public class StompConnections<T> implements Connections<T> {
     // Maps destinations (topics/queues) to lists of subscribed connection IDs
     private final ConcurrentMap<String, CopyOnWriteArrayList<Integer>> subscriptions = new ConcurrentHashMap<>();
         private static final AtomicInteger messageIDCounter = new AtomicInteger(0);
-        //subscriptionsId key - connectionId and value - hashmap that maps each topic to its subscriptionid of this client
-        private final ConcurrentMap<Integer, ConcurrentMap<String, Integer>> subscriptionsId = new ConcurrentHashMap<>();
+        //clientsTo_subscriptionsId key - connectionId and value - hashmap that maps each topic to its subscriptionid of this client
+        private final ConcurrentMap<Integer, ConcurrentMap<String, Integer>> clientsTo_subscriptionsId = new ConcurrentHashMap<>();
         //we chhose the value be map of topic -> subid and not subid -> topic for efficiency in check double subscribe but can be upside down
     @Override
     public boolean send(int connectionId, T message) {
@@ -61,30 +61,57 @@ public class StompConnections<T> implements Connections<T> {
     }
 
     public boolean subscribe(String destination, int connectionId, int subscriptionId) {
-        ConcurrentMap<String,Integer> clientSubscriptions = subscriptionsId.computeIfAbsent(connectionId, key -> new ConcurrentHashMap<>());
+        ConcurrentMap<String,Integer> clientSubscriptions = clientsTo_subscriptionsId.computeIfAbsent(connectionId, key -> new ConcurrentHashMap<>());
         if (clientSubscriptions.containsKey(destination)) {
         System.out.println("Client " + connectionId + " is already subscribed to destination " + destination + " with subscriptionId " + subscriptionId);
         return false; // Already subscribed
         }
         // Subscribes a client to a destination
         subscriptions.computeIfAbsent(destination, key -> new CopyOnWriteArrayList<>()).add(connectionId);
-        subscriptionsId.computeIfAbsent(connectionId, key -> new ConcurrentHashMap<>()).put(destination, subscriptionId);
+        clientsTo_subscriptionsId.computeIfAbsent(connectionId, key -> new ConcurrentHashMap<>()).put(destination, subscriptionId);
         return true;
     }
 
 
-    public boolean unsubscribe(String destination, int connectionId) {
-        // Unsubscribes a client from a destination
-        CopyOnWriteArrayList<Integer> subscribers = subscriptions.get(destination);
-        if (subscribers != null) {
-            subscribers.remove(Integer.valueOf(connectionId));
-            if (subscribers.isEmpty()) {
-                subscriptions.remove(destination);
+    // public boolean unsubscribe(String destination, int connectionId) {
+    //     // Unsubscribes a client from a destination
+    //     CopyOnWriteArrayList<Integer> subscribers = subscriptions.get(destination);
+    //     if (subscribers != null) {
+    //         subscribers.remove(Integer.valueOf(connectionId));
+    //         if (subscribers.isEmpty()) {
+    //             subscriptions.remove(destination);
+    //         }
+    //         return true;
+    //     }
+    //     return false;
+    // }
+    public boolean unsubscribe(int subscriptionId, int connectionId) {
+        ConcurrentMap<String, Integer> clientSubscriptions = clientsTo_subscriptionsId.get(connectionId);
+        if (clientSubscriptions != null) {
+
+            if (clientSubscriptions.values().contains(subscriptionId) == true) {
+                //if this subscription id exists for that client
+                String destination = null;
+                for(String dest : clientSubscriptions.keySet()){
+                    if(clientSubscriptions.get(dest) == subscriptionId)
+                    {
+                        destination = dest;
+                    }
+                }
+                CopyOnWriteArrayList<Integer> subscribers = subscriptions.get(destination);
+                if (subscribers != null) {
+                    subscribers.remove(Integer.valueOf(connectionId));
+                    if (subscribers.isEmpty()) {
+                        subscriptions.remove(destination);
+                    }
+                }
+                return true; // Successfully unsubscribed
             }
-            return true;
+            return false; // Subscription id doesnt exist for that client
         }
-        return false;
+        return false; // client is not subscribed to any topic
     }
+    
 
     /**
      * Registers a new connection.
@@ -109,7 +136,7 @@ public class StompConnections<T> implements Connections<T> {
         return String.valueOf(messageIDCounter.incrementAndGet());
     }
 
-    public ConcurrentMap<Integer, ConcurrentMap<String, Integer>> get_subscriptionsId(){
-        return subscriptionsId;
+    public ConcurrentMap<Integer, ConcurrentMap<String, Integer>> get_clientsTo_subscriptionsId(){
+        return clientsTo_subscriptionsId;
     }
 }
