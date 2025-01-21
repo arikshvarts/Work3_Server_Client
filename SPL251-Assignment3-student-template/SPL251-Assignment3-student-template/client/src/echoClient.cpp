@@ -1,10 +1,12 @@
 #include <stdlib.h>
 #include "../include/ConnectionHandler.h"
-
+#include <iostream>
+#include <thread>
 /**
 * This code assumes that the server replies the exact text the client sent it (as opposed to the practical session example)
 */
 int main (int argc, char *argv[]) {
+    std::thread th1(keyBoardInput(), 3);
     if (argc < 3) {
         std::cerr << "Usage: " << argv[0] << " host port" << std::endl << std::endl;
         return -1;
@@ -13,12 +15,17 @@ int main (int argc, char *argv[]) {
     short port = atoi(argv[2]);
     
     ConnectionHandler connectionHandler(host, port);
-    if (!connectionHandler.connect()) {
+    try(std::thread th2(connectionHandler(), 3)) {
+        
         std::cerr << "Cannot connect to " << host << ":" << port << std::endl;
         return 1;
     }
 	
 	//From here we will see the rest of the ehco client implementation:
+
+    // This thread is launched by using
+    // function object as callable
+    std::thread th2(connectionHandler(), 3);
     while (1) {
         const short bufsize = 1024;
         char buf[bufsize];

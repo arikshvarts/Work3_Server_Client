@@ -17,7 +17,7 @@ public abstract class StompTPCServer<T> implements StompServerInterface<T> {
     private final Supplier<StompEncoderDecoder<T>> encdecFactory;
     private ServerSocket sock;
     private StompConnections connections;
-    private int idUser = 1;
+    private int idClient = 1;
 
     public StompTPCServer(
             int port,
@@ -46,9 +46,9 @@ public abstract class StompTPCServer<T> implements StompServerInterface<T> {
                         clientSock,
                         encdecFactory.get(),
                         protocolFactory.get());
-                connections.getClients().put(idUser, handler);//check what id i want here
-                handler.getProtocol().start(idUser, connections);//check what id i want here
-                idUser++;
+                connections.getClients().put(idClient, handler);//check what id i want here
+                handler.getProtocol().start(idClient, connections);//check what id i want here
+                idClient++;
                 execute(handler);
             }
         } catch (IOException ex) {
