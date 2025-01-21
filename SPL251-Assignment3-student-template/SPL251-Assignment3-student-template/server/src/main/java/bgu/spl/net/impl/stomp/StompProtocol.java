@@ -66,6 +66,24 @@ public class StompProtocol<T> implements StompMessagingProtocol<T> {
     public void handleConnect(Message msg){
         //server responds by sending a CONNECTED Message to registered Clients
         String clientVersion = msg.getHeaders().get("accept-version");
+        String login = msg.getHeaders().get("login");
+        String passcode = msg.getHeaders().get("passcode");
+        if(((StompConnections<T>) connections).handle_credentials(login, passcode) == false){
+        //false:send error frame, true:correct credentials/update credentials if the user is new
+        HashMap<String, String> errorHeaders = new HashMap<>();
+            errorHeaders.put("message:", "unmatch credentials"); 
+            if(msg.getHeaders().get("receipt") != null){
+            //if the frame from the client include receipt, include it in the ERROR headers
+                errorHeaders.put("receipt", msg.getHeaders().get("receipt")); 
+            }
+            String errorBody = "The message:\n-----\n" + msg.toString() + "\n-----\n" +
+            "The passcode doesn't match the login or credentials are not in format";
+            Message errorFrame = new Message("ERROR", errorHeaders , errorBody);
+
+            ((StompConnections<T>) connections).send(connectionId, (T) errorFrame);
+            connections.disconnect(connectionId); // Close the connection
+            shouldTerminate = true;
+        }
         if(!clientVersion.equals("1.2")){
             //we need to send an ERROR frame
             HashMap<String, String> errorHeaders = new HashMap<>();
@@ -137,6 +155,10 @@ public class StompProtocol<T> implements StompMessagingProtocol<T> {
         // Send ERROR frame for missing headers
         HashMap<String, String> errorHeaders = new HashMap<>();
         errorHeaders.put("message", "Missing 'destination' or 'id' header in SUBSCRIBE frame");
+        if(msg.getHeaders().get("receipt") != null){
+            //if the frame from the client include receipt, include it in the ERROR headers
+            errorHeaders.put("receipt", msg.getHeaders().get("receipt")); 
+        }
         Message errorFrame = new Message("ERROR", errorHeaders, null);
         connections.send(connectionId, (T) errorFrame.toString());
         connections.disconnect(connectionId);
@@ -150,7 +172,11 @@ public class StompProtocol<T> implements StompMessagingProtocol<T> {
         } catch (NumberFormatException e) {
             // Send ERROR frame for invalid subscription ID
             HashMap<String, String> errorHeaders = new HashMap<>();
-            errorHeaders.put("message", "Invalid 'id' in SUBSCRIBE frame: " + subscriptionIdStr);
+            errorHeaders.put("message", "Invalid 'id' in SUBSCRIBE frame: " + subscriptionIdStr);        
+            if(msg.getHeaders().get("receipt") != null){
+                //if the frame from the client include receipt, include it in the ERROR headers
+                errorHeaders.put("receipt", msg.getHeaders().get("receipt")); 
+            }
             Message errorFrame = new Message("ERROR", errorHeaders, null);
             connections.send(connectionId, (T) errorFrame.toString());
             connections.disconnect(connectionId);
@@ -164,6 +190,10 @@ public class StompProtocol<T> implements StompMessagingProtocol<T> {
             // Send ERROR frame for duplicate subscription
             HashMap<String, String> errorHeaders = new HashMap<>();
             errorHeaders.put("message", "Client is already subscribed to " + destination + " with subscription ID " + subscriptionId);
+            if(msg.getHeaders().get("receipt") != null){
+                //if the frame from the client include receipt, include it in the ERROR headers
+                errorHeaders.put("receipt", msg.getHeaders().get("receipt")); 
+            }       
             Message errorFrame = new Message("ERROR", errorHeaders, null);
             connections.send(connectionId, (T) errorFrame.toString());
             return; // No need to disconnect, just inform the client
@@ -183,6 +213,10 @@ public class StompProtocol<T> implements StompMessagingProtocol<T> {
         // Send ERROR frame for missing 'id' header
         HashMap<String, String> errorHeaders = new HashMap<>();
         errorHeaders.put("message", "Missing 'id' header in UNSUBSCRIBE frame");
+        if(msg.getHeaders().get("receipt") != null){
+            //if the frame from the client include receipt, include it in the ERROR headers
+            errorHeaders.put("receipt", msg.getHeaders().get("receipt")); 
+        }
         Message errorFrame = new Message("ERROR", errorHeaders, null);
         connections.send(connectionId, (T) errorFrame.toString());
         connections.disconnect(connectionId);
@@ -198,6 +232,10 @@ public class StompProtocol<T> implements StompMessagingProtocol<T> {
         // Send ERROR frame for invalid subscription ID
         HashMap<String, String> errorHeaders = new HashMap<>();
         errorHeaders.put("message", "Invalid 'id' in UNSUBSCRIBE frame: " + subscriptionIdStr);
+        if(msg.getHeaders().get("receipt") != null){
+            //if the frame from the client include receipt, include it in the ERROR headers
+            errorHeaders.put("receipt", msg.getHeaders().get("receipt")); 
+        }
         Message errorFrame = new Message("ERROR", errorHeaders, null);
         connections.send(connectionId, (T) errorFrame.toString());
         connections.disconnect(connectionId);
@@ -211,6 +249,10 @@ public class StompProtocol<T> implements StompMessagingProtocol<T> {
         // Send ERROR frame if the subscription does not exist
         HashMap<String, String> errorHeaders = new HashMap<>();
         errorHeaders.put("message", "No subscription found for ID " + subscriptionId);
+        if(msg.getHeaders().get("receipt") != null){
+            //if the frame from the client include receipt, include it in the ERROR headers
+            errorHeaders.put("receipt", msg.getHeaders().get("receipt")); 
+        }
         Message errorFrame = new Message("ERROR", errorHeaders, null);
         connections.send(connectionId, (T) errorFrame.toString());
         return; // No need to disconnect, just inform the client

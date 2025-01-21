@@ -6,6 +6,7 @@ import bgu.spl.net.srv.Connections;
 import java.util.Set;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -13,17 +14,24 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class StompConnections<T> implements Connections<T> {
     	// Maps connection IDs to connection handlers
-    	private final ConcurrentMap<Integer, ConnectionHandler<T>> clients;
+    	private final ConcurrentHashMap<Integer, ConnectionHandler<T>> clients;
     	// Maps destinations (topics/queues) to lists of subscribed connection IDs
-    	private final ConcurrentMap<String, CopyOnWriteArrayList<Integer>> subscriptions;
-        private static final AtomicInteger messageIDCounter	=new AtomicInteger(0);
+    	private final ConcurrentHashMap<String, CopyOnWriteArrayList<Integer>> subscriptions;
+        private static AtomicInteger messageIDCounter	=new AtomicInteger(0);
         //subscriptionsId key - connectionId and value - hashmap that maps each topic to its subscriptionid of this client
-        private final ConcurrentMap<Integer, ConcurrentMap<String, Integer>> subscriptionsId;
+        private final ConcurrentHashMap<Integer, ConcurrentHashMap<String, Integer>> clientsTo_subscriptionsId;
         //we chhose the value be map of topic -> subid and not subid -> topic for efficiency in check double subscribe but can be upside down
-		StompConnections() {
+		// hashmap of login to passcode of all users(logged in users and logged out users)
+        private final ConcurrentHashMap<String, String> credentials;
+        //LinkedQueue of the users currently logged in
+        private ConcurrentLinkedQueue<String> activeUsers;
+
+        StompConnections() {
 			clients = new ConcurrentHashMap<>();
 			subscriptions = new ConcurrentHashMap<>();
-			subscriptionsId = new ConcurrentHashMap<>();
+			clientsTo_subscriptionsId = new ConcurrentHashMap<>();
+            credentials = new ConcurrentHashMap<>();
+            activeUsers = new ConcurrentLinkedQueue<>();
 	}
 
     @Override
@@ -142,10 +150,19 @@ public class StompConnections<T> implements Connections<T> {
         return String.valueOf(messageIDCounter.incrementAndGet());
     }
 
-    public ConcurrentMap<Integer, ConcurrentMap<String, Integer>> get_clientsTo_subscriptionsId(){
+    public ConcurrentHashMap<Integer, ConcurrentHashMap<String, Integer>> get_clientsTo_subscriptionsId(){
         return clientsTo_subscriptionsId;
     }
 	public ConcurrentMap<Integer, ConnectionHandler<T>> getClients(){
 		return clients;
 	}
+    public boolean handle_credentials(String login, String passcode){
+        if(credentials.get(login) != null){
+            if(credentials.get(login).equals(passcode)){return true;}
+            else{return false;} //passcode doesn't match the login
+        }
+        // this is a new user
+        credentials.put(login, passcode);
+        return true;
+    }
 }
