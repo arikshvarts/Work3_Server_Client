@@ -121,7 +121,7 @@ public class StompProtocol<T> implements StompMessagingProtocol<T> {
         else{
         String message = msg.getBody();
         HashMap<String, String> messageHeaders = new HashMap<>();
-        messageHeaders.put("subscription : ",((StompConnections<T>)connections).get_subscriptionsId().get(topic).toString());
+        messageHeaders.put("subscription:",((StompConnections<T>)connections).get_clientsTo_subscriptionsId().get(connectionId).get(topic).toString());
         messageHeaders.put("message-id: ", ((StompConnections<T>)connections).generateMessageId());
         Message messageFrame = new Message("Message", messageHeaders, msg.getBody());
         //sending the message the client had to the channel
@@ -130,10 +130,93 @@ public class StompProtocol<T> implements StompMessagingProtocol<T> {
     }
 
     public void handleSubscribe(Message msg){
-        
+        String destination = msg.getHeaders().get("destination");
+        String subscriptionIdStr = msg.getHeaders().get("id");
+
+        if (destination == null || subscriptionIdStr == null) {
+        // Send ERROR frame for missing headers
+        HashMap<String, String> errorHeaders = new HashMap<>();
+        errorHeaders.put("message", "Missing 'destination' or 'id' header in SUBSCRIBE frame");
+        Message errorFrame = new Message("ERROR", errorHeaders, null);
+        connections.send(connectionId, (T) errorFrame.toString());
+        connections.disconnect(connectionId);
+        shouldTerminate = true;
+        return;
+        }
+
+            int subscriptionId;
+        try {
+            subscriptionId = Integer.parseInt(subscriptionIdStr);
+        } catch (NumberFormatException e) {
+            // Send ERROR frame for invalid subscription ID
+            HashMap<String, String> errorHeaders = new HashMap<>();
+            errorHeaders.put("message", "Invalid 'id' in SUBSCRIBE frame: " + subscriptionIdStr);
+            Message errorFrame = new Message("ERROR", errorHeaders, null);
+            connections.send(connectionId, (T) errorFrame.toString());
+            connections.disconnect(connectionId);
+            shouldTerminate = true;
+            return;
+        }
+
+        // Check if already subscribed
+        if (!((StompConnections<T>) connections).subscribe(destination, connectionId, subscriptionId)) {
+            //if it enter the if, the subscribe returned false - already subscribe
+            // Send ERROR frame for duplicate subscription
+            HashMap<String, String> errorHeaders = new HashMap<>();
+            errorHeaders.put("message", "Client is already subscribed to " + destination + " with subscription ID " + subscriptionId);
+            Message errorFrame = new Message("ERROR", errorHeaders, null);
+            connections.send(connectionId, (T) errorFrame.toString());
+            return; // No need to disconnect, just inform the client
+        }
+//if didnt enter the last if, subscribe returned true - calid SUBSCRIBE frame, connections.subscribed handled the subscription
+
+
+
     }
 
-    public void handleUnsubscribe(Message msg){
-        
+    public void handleUnsubscribe(Message msg) {
+    // Extract headers
+    String subscriptionIdStr = msg.getHeaders().get("id");
+
+    // Validate the frame headers
+    if (subscriptionIdStr == null) {
+        // Send ERROR frame for missing 'id' header
+        HashMap<String, String> errorHeaders = new HashMap<>();
+        errorHeaders.put("message", "Missing 'id' header in UNSUBSCRIBE frame");
+        Message errorFrame = new Message("ERROR", errorHeaders, null);
+        connections.send(connectionId, (T) errorFrame.toString());
+        connections.disconnect(connectionId);
+        shouldTerminate = true;
+        return;
     }
+
+    // Parse subscriptionId
+    int subscriptionId;
+    try {
+        subscriptionId = Integer.parseInt(subscriptionIdStr);
+    } catch (NumberFormatException e) {
+        // Send ERROR frame for invalid subscription ID
+        HashMap<String, String> errorHeaders = new HashMap<>();
+        errorHeaders.put("message", "Invalid 'id' in UNSUBSCRIBE frame: " + subscriptionIdStr);
+        Message errorFrame = new Message("ERROR", errorHeaders, null);
+        connections.send(connectionId, (T) errorFrame.toString());
+        connections.disconnect(connectionId);
+        shouldTerminate = true;
+        return;
+    }
+
+//calling unsubscribe method in StompConnections, if unsubscribed is true - unsubscribed successfully, if false - wasnt able to unsubscribe
+    boolean unsubscribed = ((StompConnections<T>) connections).unsubscribe(subscriptionId, connectionId);
+    if (!unsubscribed) {
+        // Send ERROR frame if the subscription does not exist
+        HashMap<String, String> errorHeaders = new HashMap<>();
+        errorHeaders.put("message", "No subscription found for ID " + subscriptionId);
+        Message errorFrame = new Message("ERROR", errorHeaders, null);
+        connections.send(connectionId, (T) errorFrame.toString());
+        return; // No need to disconnect, just inform the client
+    }
+
+    // printing for debugging
+    System.out.println("Client " + connectionId + " unsubscribed from subscription ID " + subscriptionId);
+}
 }
