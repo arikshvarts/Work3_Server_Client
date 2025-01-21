@@ -12,7 +12,7 @@ import bgu.spl.net.api.MessagingProtocol;
 import bgu.spl.net.impl.stomp.StompConnections;
 public class StompBlockingConnectionHandler<T> implements ConnectionHandler<T> ,Runnable{
 
-	    private final StompProtocol<T> protocol;
+	private final StompProtocol<T> protocol;
     private final StompEncoderDecoder<T> encdec;
     private final Socket sock;
     private BufferedInputStream in;

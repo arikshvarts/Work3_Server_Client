@@ -4,3 +4,8 @@ SPL251-Assignment3-student-template/SPL251-Assignment3-student-template/server/t
 SPL251-Assignment3-student-template/SPL251-Assignment3-student-template/server/target/classes/bgu/spl/net/impl/stomp/StompServer.class
 SPL251-Assignment3-student-template/SPL251-Assignment3-student-template/server/target/classes/bgu/spl/net/impl/rci/ObjectEncoderDecoder.class
 *.class
+SPL251-Assignment3-student-template/SPL251-Assignment3-student-template/server/target/classes/bgu/spl/net/api/MessagingProtocol.class
+SPL251-Assignment3-student-template/SPL251-Assignment3-student-template/server/target/classes/bgu/spl/net/impl/rci/ObjectEncoderDecoder.class
+SPL251-Assignment3-student-template/SPL251-Assignment3-student-template/server/target/classes/bgu/spl/net/impl/stomp/StompServer.class
+SPL251-Assignment3-student-template/SPL251-Assignment3-student-template/server/target/classes/bgu/spl/net/srv/ActorThreadPool.class
+SPL251-Assignment3-student-template/SPL251-Assignment3-student-template/server/target/classes/bgu/spl/net/srv/NonBlockingConnectionHandler.class

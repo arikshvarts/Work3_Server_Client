@@ -7,6 +7,7 @@ import bgu.spl.net.srv.BlockingConnectionHandler;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 public abstract class StompTPCServer<T> implements StompServerInterface<T> {
@@ -16,6 +17,7 @@ public abstract class StompTPCServer<T> implements StompServerInterface<T> {
     private final Supplier<StompEncoderDecoder<T>> encdecFactory;
     private ServerSocket sock;
     private StompConnections connections;
+    private int idUser = 1;
 
     public StompTPCServer(
             int port,
@@ -26,7 +28,7 @@ public abstract class StompTPCServer<T> implements StompServerInterface<T> {
         this.protocolFactory = protocolFactory;
         this.encdecFactory = encdecFactory;
 		this.sock = null;
-        this.connections = null;
+        this.connections = new StompConnections<>();
     }
 
     @Override
@@ -44,9 +46,9 @@ public abstract class StompTPCServer<T> implements StompServerInterface<T> {
                         clientSock,
                         encdecFactory.get(),
                         protocolFactory.get());
-                connections.getClients().put(handler.getId(), handler);//check what is i want here
-                handler.getProtocol().start(handler.getId(), connections);//check what is i want here
-
+                connections.getClients().put(idUser, handler);//check what id i want here
+                handler.getProtocol().start(idUser, connections);//check what id i want here
+                idUser++;
                 execute(handler);
             }
         } catch (IOException ex) {

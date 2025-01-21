@@ -114,8 +114,8 @@ public class StompProtocol<T> implements StompMessagingProtocol<T> {
             "client who is not subscribed to a channel cant send message to this channel";
             Message errorFrame = new Message("ERROR", errorHeaders , errorBody);
 
-            connections.send(connectionId, (T) errorFrame);
-            connections.disconnect(connectionId); // Close the connection
+            ((StompConnections<T>) connections).send(connectionId, (T) errorFrame);
+            ((StompConnections<T>) connections).disconnect(connectionId); // Close the connection
             shouldTerminate = true;
         }
         else{

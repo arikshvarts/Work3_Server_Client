@@ -27,7 +27,7 @@ public class StompReactor<T> implements StompServerInterface<T> {
     private Thread selectorThread;
     private final ConcurrentLinkedQueue<Runnable> selectorTasks = new ConcurrentLinkedQueue<>();
     private StompConnections connections;
-
+    private int idUser = 1;
 
 
 
@@ -112,8 +112,18 @@ public class StompReactor<T> implements StompServerInterface<T> {
                 protocolFactory.get(),
                 clientChan,
                 this);
-        connections.getClients().put(handler.getId(), handler);//check what id i want here
-        pool.submit(handler,() -> handler.getProtocol().start(handler.getId(), connections));//check what id i want here
+                pool.submit(handler, () -> {
+                    // Retrieve the handler's unique ID
+                
+                    // Add the handler to the clients map using the ID
+                    connections.getClients().put(idUser, handler); // Check if this is the correct ID
+                
+                    // Start the protocol using the handler's ID and connections object
+                    handler.getProtocol().start(idUser, connections);
+                    idUser++;
+                     // Verify ID usage here
+                });
+                
         
         clientChan.register(selector, SelectionKey.OP_READ, handler);
     }
