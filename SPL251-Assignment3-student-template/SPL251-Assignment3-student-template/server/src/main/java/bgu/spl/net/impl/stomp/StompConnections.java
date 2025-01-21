@@ -12,14 +12,20 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class StompConnections<T> implements Connections<T> {
-    // Maps connection IDs to connection handlers
-    private final ConcurrentMap<Integer, ConnectionHandler<T>> clients = new ConcurrentHashMap<>();
-    // Maps destinations (topics/queues) to lists of subscribed connection IDs
-    private final ConcurrentMap<String, CopyOnWriteArrayList<Integer>> subscriptions = new ConcurrentHashMap<>();
-        private static final AtomicInteger messageIDCounter = new AtomicInteger(0);
-        //clientsTo_subscriptionsId key - connectionId and value - hashmap that maps each topic to its subscriptionid of this client
-        private final ConcurrentMap<Integer, ConcurrentMap<String, Integer>> clientsTo_subscriptionsId = new ConcurrentHashMap<>();
+    	// Maps connection IDs to connection handlers
+    	private final ConcurrentMap<Integer, ConnectionHandler<T>> clients;
+    	// Maps destinations (topics/queues) to lists of subscribed connection IDs
+    	private final ConcurrentMap<String, CopyOnWriteArrayList<Integer>> subscriptions;
+        private static final AtomicInteger messageIDCounter	=new AtomicInteger(0);
+        //subscriptionsId key - connectionId and value - hashmap that maps each topic to its subscriptionid of this client
+        private final ConcurrentMap<Integer, ConcurrentMap<String, Integer>> subscriptionsId;
         //we chhose the value be map of topic -> subid and not subid -> topic for efficiency in check double subscribe but can be upside down
+		StompConnections() {
+			clients = new ConcurrentHashMap<>();
+			subscriptions = new ConcurrentHashMap<>();
+			subscriptionsId = new ConcurrentHashMap<>();
+	}
+
     @Override
     public boolean send(int connectionId, T message) {
         // Sends a message to a specific client
@@ -139,4 +145,7 @@ public class StompConnections<T> implements Connections<T> {
     public ConcurrentMap<Integer, ConcurrentMap<String, Integer>> get_clientsTo_subscriptionsId(){
         return clientsTo_subscriptionsId;
     }
+	public ConcurrentMap<Integer, ConnectionHandler<T>> getClients(){
+		return clients;
+	}
 }

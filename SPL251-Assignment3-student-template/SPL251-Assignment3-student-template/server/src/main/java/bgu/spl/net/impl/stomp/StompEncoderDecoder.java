@@ -6,26 +6,38 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
-public class StompEncoderDecoder implements MessageEncoderDecoder<Message> {
+public class StompEncoderDecoder<T> implements MessageEncoderDecoder<T> {
     private byte[] bytes = new byte[1 << 10]; // Initial buffer size: 1KB
     private int len = 0;
 
+    // Function to parse a STOMP frame into a generic type T
+    private final Function<String, T> frameParser;
+
+    // Function to serialize a generic type T into a STOMP frame
+    private final Function<T, String> frameSerializer;
+
+    public StompEncoderDecoder(Function<String, T> frameParser, Function<T, String> frameSerializer) {
+        this.frameParser = frameParser;
+        this.frameSerializer = frameSerializer;
+    }
+
     @Override
-    public Message decodeNextByte(byte nextByte) {
+    public T decodeNextByte(byte nextByte) {
         // STOMP frames are null-terminated
         if (nextByte == '\u0000') {
             String frame = popString(); // Convert bytes to string
-            return parseFrame(frame);  // Parse the STOMP frame into a Message object
+            return frameParser.apply(frame);  // Parse the STOMP frame into a generic type T
         }
         pushByte(nextByte); // Accumulate bytes in the buffer
         return null;        // Frame not complete
     }
 
     @Override
-    public byte[] encode(Message message) {
-        // Serialize the Message object into a STOMP frame and null-terminate it
-        return (message.toString() + "\u0000").getBytes(StandardCharsets.UTF_8);
+    public byte[] encode(T message) {
+        // Serialize the generic type T into a STOMP frame and null-terminate it
+        return (frameSerializer.apply(message) + "\u0000").getBytes(StandardCharsets.UTF_8);
     }
 
     private void pushByte(byte nextByte) {
@@ -41,29 +53,5 @@ public class StompEncoderDecoder implements MessageEncoderDecoder<Message> {
         String result = new String(bytes, 0, len, StandardCharsets.UTF_8);
         len = 0; // Reset the buffer
         return result;
-    }
-
-    private Message parseFrame(String frame) {
-        // Split the frame into headers and body based on double newline
-        String[] parts = frame.split("\n\n", 2);
-        String[] headerLines = parts[0].split("\n"); // Split headers by newline
-
-        // Extract the command from the first line
-        String command = headerLines[0];
-
-        // Parse headers into a map
-        Map<String, String> headers = new HashMap<>();
-        for (int i = 1; i < headerLines.length; i++) {
-            String[] headerParts = headerLines[i].split(":", 2);
-            if (headerParts.length == 2) {
-                headers.put(headerParts[0].trim(), headerParts[1].trim());
-            }
-        }
-
-        // Extract body (if present)
-        String body = parts.length > 1 ? parts[1] : "";
-
-        // Return the parsed Message object
-        return new Message(command, headers, body);
     }
 }
