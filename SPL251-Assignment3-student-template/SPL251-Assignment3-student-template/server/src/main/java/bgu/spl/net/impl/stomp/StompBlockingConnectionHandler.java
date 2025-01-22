@@ -36,7 +36,7 @@ public class StompBlockingConnectionHandler<T> implements ConnectionHandler<T> ,
 					int read = in.read(); // Blocking call to read bytes
 					if (read < 0) break;  // End of stream reached
 	
-					String nextMessage = encdec.decodeNextByte((byte) read);
+					Message nextMessage = encdec.decodeNextByte((byte) read);
 					if (nextMessage != null) {
 						protocol.process((T) nextMessage); // Delegate processing and response to protocol
 					}
@@ -59,20 +59,37 @@ public class StompBlockingConnectionHandler<T> implements ConnectionHandler<T> ,
 			e.printStackTrace();
 		}
 	}
-	@Override
-	public void send(T msg) {
-		try {
-			byte[] encodedMsg = encdec.encode((String) msg); // Serialize the message
-			out.write(encodedMsg);                 // Write to the output stream
-			out.flush();                           // Ensure the message is sent
-		} catch (IOException e) {
-			e.printStackTrace();
-			connected = false; // Mark the connection as closed
-		}
-	}
+	// @Override
+	// public void send(T msg) {
+	// 	try {
+	// 		byte[] encodedMsg = encdec.encode((String) msg); // Serialize the message
+	// 		out.write(encodedMsg);                 // Write to the output stream
+	// 		out.flush();                           // Ensure the message is sent
+	// 	} catch (IOException e) {
+	// 		e.printStackTrace();
+	// 		connected = false; // Mark the connection as closed
+	// 	}
+	// }
+	
 	public StompProtocol getProtocol(){
 		return protocol;
 	}
+	@Override
+public void send(T msg) {
+    try {
+        Message message = (Message) msg;
+        // Serialize the Message object into bytes
+        byte[] encodedMsg = encdec.encode(message);
+        // Write the encoded bytes to the output stream
+        out.write(encodedMsg);
+        out.flush(); // Ensure the message is sent
+    } catch (IOException e) {
+        e.printStackTrace();
+        connected = false; // Mark the connection as closed
+    } catch (ClassCastException e) {
+        System.err.println("Error: The provided message is not of type Message: " + e.getMessage());
+    }
+}
 
 
 }

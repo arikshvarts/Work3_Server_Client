@@ -52,7 +52,7 @@ public class StompNonBlockingConnectionsHandler<T> implements ConnectionHandler<
             return () -> {
                 try {
                     while (buf.hasRemaining()) {
-                        String nextMessage = encdec.decodeNextByte(buf.get());
+                        Message nextMessage = encdec.decodeNextByte(buf.get());
                         if (nextMessage != null) {
                             T message = (T) nextMessage;
                             protocol.process(message);
@@ -123,17 +123,38 @@ public class StompNonBlockingConnectionsHandler<T> implements ConnectionHandler<
 //             task.run();
 //         }
 //     }
-@Override
-public void send(T msg) {
-    try {
-        byte[] encodedMsg = encdec.encode((String) msg); // Serialize the message
-        writeQueue.add(ByteBuffer.wrap(encodedMsg)); // Enqueue the message
-        reactor.updateInterestedOps(chan, SelectionKey.OP_READ | SelectionKey.OP_WRITE); // Enable write readiness
-    } catch (Exception e) {
-        e.printStackTrace();
-        close(); // Close the connection on error
+
+// @Override
+// public void send(T msg) {
+//     try {
+//         byte[] encodedMsg = encdec.encode((String) msg); // Serialize the message
+//         writeQueue.add(ByteBuffer.wrap(encodedMsg)); // Enqueue the message
+//         reactor.updateInterestedOps(chan, SelectionKey.OP_READ | SelectionKey.OP_WRITE); // Enable write readiness
+//     } catch (Exception e) {
+//         e.printStackTrace();
+//         close(); // Close the connection on error
+//     }
+// }
+
+    @Override
+    public void send(T msg) {
+        try {
+            Message message = (Message) msg;
+            // Serialize the Message object into bytes
+            byte[] encodedMsg = encdec.encode(message);
+            writeQueue.add(ByteBuffer.wrap(encodedMsg));
+
+            // Update the reactor to enable write readiness
+            reactor.updateInterestedOps(chan, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+        } catch (ClassCastException e) {
+            System.err.println("Error: The provided message is not of type Message: " + e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            close(); // Close the connection on error
+        }
     }
-}
+
+
 public StompProtocol getProtocol(){
     return protocol;
 }
