@@ -31,6 +31,7 @@ int main(int argc, char *argv[]) {
 	keyboardInput runnable1();
 	netWorkThread runnable2();
 
+	//should be activated inside the keyboard probably
 	std::thread keyBoardThread(&keyboardInput::run, &runnable1, std::ref(connectionHandler), std::ref(isActive));
     std::thread networkThread(&netWorkThread::run, &runnable2, std::ref(connectionHandler), std::ref(isActive), std::ref(mtx));
 

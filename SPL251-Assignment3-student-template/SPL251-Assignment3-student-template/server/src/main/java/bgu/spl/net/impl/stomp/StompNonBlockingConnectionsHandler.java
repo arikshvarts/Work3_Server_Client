@@ -20,14 +20,14 @@ public class StompNonBlockingConnectionsHandler<T> implements ConnectionHandler<
     private static final ConcurrentLinkedQueue<ByteBuffer> BUFFER_POOL = new ConcurrentLinkedQueue<>();
 
     private final StompProtocol<T> protocol;
-    private final StompEncoderDecoder<T> encdec;
+    private final StompEncoderDecoder encdec;
     private final Queue<ByteBuffer> writeQueue = new ConcurrentLinkedQueue<>();
     private final SocketChannel chan;
     private final StompReactor reactor;
 
 
     public StompNonBlockingConnectionsHandler(
-            StompEncoderDecoder<T> reader,
+            StompEncoderDecoder reader,
             StompProtocol<T> protocol,
             SocketChannel chan,
             StompReactor reactor) {
@@ -52,9 +52,10 @@ public class StompNonBlockingConnectionsHandler<T> implements ConnectionHandler<
             return () -> {
                 try {
                     while (buf.hasRemaining()) {
-                        T nextMessage = encdec.decodeNextByte(buf.get());
+                        String nextMessage = encdec.decodeNextByte(buf.get());
                         if (nextMessage != null) {
-                            protocol.process(nextMessage);
+                            T message = (T) nextMessage;
+                            protocol.process(message);
                         }
                     }
                 } finally {
@@ -125,7 +126,7 @@ public class StompNonBlockingConnectionsHandler<T> implements ConnectionHandler<
 @Override
 public void send(T msg) {
     try {
-        byte[] encodedMsg = encdec.encode(msg); // Serialize the message
+        byte[] encodedMsg = encdec.encode((String) msg); // Serialize the message
         writeQueue.add(ByteBuffer.wrap(encodedMsg)); // Enqueue the message
         reactor.updateInterestedOps(chan, SelectionKey.OP_READ | SelectionKey.OP_WRITE); // Enable write readiness
     } catch (Exception e) {
