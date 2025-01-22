@@ -5,27 +5,82 @@ import bgu.spl.net.api.MessageEncoderDecoder;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
-public class StompEncoderDecoder implements MessageEncoderDecoder<String> {
+public class StompEncoderDecoder implements MessageEncoderDecoder<Message> {
 
     private byte[] bytes = new byte[1 << 10]; // Initial buffer size: 1KB
     private int len = 0;
 
-    @Override
-    public String decodeNextByte(byte nextByte) {
-        // STOMP frames are null-terminated
-        if (nextByte == '\u0000') {
-            String frame = popString(); // Convert bytes to string
-            return parseFrame(frame);  // Parse the STOMP frame into a string
+
+        @Override
+
+    public Message decodeNextByte(byte nextByte) {
+    // STOMP frames are null-terminated
+    if (nextByte == '\u0000') {
+        String rawFrame = popString(); // Extract the full frame as a String
+        return parseFrame(rawFrame);  // Parse the raw frame into a Message object
+    }
+    pushByte(nextByte); // Accumulate bytes in the buffer
+    return null;        // Frame not complete
+}
+
+    private Message parseFrame(String frame) {
+        String[] parts = frame.split("\n", 2);
+        if (parts.length < 2) {
+            throw new IllegalArgumentException("Invalid STOMP frame");
         }
-        pushByte(nextByte); // Accumulate bytes in the buffer
-        return null;        // Frame not complete
+
+        String command = parts[0].trim();
+        String[] headersAndBody = parts[1].split("\n\n", 2);
+
+        // Parse headers
+        Map<String, String> headers = new HashMap<>();
+        for (String headerLine : headersAndBody[0].split("\n")) {
+            String[] headerParts = headerLine.split(":", 2);
+            if (headerParts.length == 2) {
+                headers.put(headerParts[0].trim(), headerParts[1].trim());
+            }
+        }
+
+        // Parse body
+        String body = headersAndBody.length > 1 ? headersAndBody[1] : null;
+
+        return new Message(command, headers, body);
     }
 
+    private String popString() {
+        // Convert the accumulated bytes into a UTF-8 string
+        String result = new String(bytes, 0, len, StandardCharsets.UTF_8);
+        len = 0; // Reset the buffer
+        return result;
+    }
+
+ 
     @Override
-    public byte[] encode(String message) {
-        // Serialize the string into a STOMP frame and null-terminate it
+    public byte[] encode(Message message) {
+        // Serialize the Message object into a STOMP frame and null-terminate it
         return (serializeFrame(message) + "\u0000").getBytes(StandardCharsets.UTF_8);
+    }
+
+    private String serializeFrame(Message message) {
+        StringBuilder builder = new StringBuilder();
+        builder.append(message.getCommand()).append("\n");
+
+        // Add headers
+        for (Map.Entry<String, String> header : message.getHeaders().entrySet()) {
+            builder.append(header.getKey()).append(":").append(header.getValue()).append("\n");
+        }
+
+        builder.append("\n"); // Separate headers from the body
+
+        // Add body (if present)
+        if (message.getBody() != null) {
+            builder.append(message.getBody());
+        }
+
+        return builder.toString();
     }
 
     private void pushByte(byte nextByte) {
@@ -36,28 +91,7 @@ public class StompEncoderDecoder implements MessageEncoderDecoder<String> {
         bytes[len++] = nextByte; // Add the byte to the buffer
     }
 
-    private String popString() {
-        // Convert the accumulated bytes into a UTF-8 string
-        String result = new String(bytes, 0, len, StandardCharsets.UTF_8);
-        len = 0; // Reset the buffer
-        return result;
-    }
-
-    private String parseFrame(String frame) {
-        // Parse the STOMP frame into its components (command, headers, and body)
-        String[] parts = frame.split("\n", 2);
-        if (parts.length < 2) {
-            throw new IllegalArgumentException("Invalid STOMP frame");
-        }
-
-        String command = parts[0].trim();
-        String[] headersAndBody = parts[1].split("\n\n", 2);
-
-        String headers = headersAndBody.length > 0 ? headersAndBody[0] : "";
-        String body = headersAndBody.length > 1 ? headersAndBody[1] : "";
-
-        return "COMMAND: " + command + "\nHEADERS: " + headers + "\nBODY: " + body;
-    }
+ 
 
     private String serializeFrame(String message) {
         // Split the message into its components (command, headers, and body)
