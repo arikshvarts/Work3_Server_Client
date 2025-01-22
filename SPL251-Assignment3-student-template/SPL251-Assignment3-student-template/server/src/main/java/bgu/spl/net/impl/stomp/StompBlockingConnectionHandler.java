@@ -13,13 +13,13 @@ import bgu.spl.net.impl.stomp.StompConnections;
 public class StompBlockingConnectionHandler<T> implements ConnectionHandler<T> ,Runnable{
 
 	private final StompProtocol<T> protocol;
-    private final StompEncoderDecoder<T> encdec;
+    private final StompEncoderDecoder encdec;
     private final Socket sock;
     private BufferedInputStream in;
     private BufferedOutputStream out;
     private volatile boolean connected = true;
 
-    public StompBlockingConnectionHandler(Socket sock, StompEncoderDecoder<T> reader, StompProtocol<T> protocol) {
+    public StompBlockingConnectionHandler(Socket sock, StompEncoderDecoder reader, StompProtocol<T> protocol) {
         this.sock = sock;
         this.encdec = reader;
         this.protocol = protocol;
@@ -36,9 +36,9 @@ public class StompBlockingConnectionHandler<T> implements ConnectionHandler<T> ,
 					int read = in.read(); // Blocking call to read bytes
 					if (read < 0) break;  // End of stream reached
 	
-					T nextMessage = encdec.decodeNextByte((byte) read);
+					String nextMessage = encdec.decodeNextByte((byte) read);
 					if (nextMessage != null) {
-						protocol.process(nextMessage); // Delegate processing and response to protocol
+						protocol.process((T) nextMessage); // Delegate processing and response to protocol
 					}
 				} catch (IOException e) {
 					System.err.println("Error during client communication: " + e.getMessage());
@@ -62,7 +62,7 @@ public class StompBlockingConnectionHandler<T> implements ConnectionHandler<T> ,
 	@Override
 	public void send(T msg) {
 		try {
-			byte[] encodedMsg = encdec.encode(msg); // Serialize the message
+			byte[] encodedMsg = encdec.encode((String) msg); // Serialize the message
 			out.write(encodedMsg);                 // Write to the output stream
 			out.flush();                           // Ensure the message is sent
 		} catch (IOException e) {

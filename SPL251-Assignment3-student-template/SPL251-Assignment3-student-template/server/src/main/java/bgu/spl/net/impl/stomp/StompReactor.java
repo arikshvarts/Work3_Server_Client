@@ -20,7 +20,7 @@ public class StompReactor<T> implements StompServerInterface<T> {
 
     private final int port;
     private final Supplier<StompProtocol<T>> protocolFactory;
-    private final Supplier<StompEncoderDecoder<T>> readerFactory;
+    private final Supplier<StompEncoderDecoder> readerFactory;
     private final StompActorThreadPool pool;
     private Selector selector;
 
@@ -35,7 +35,7 @@ public class StompReactor<T> implements StompServerInterface<T> {
             int numThreads,
             int port,
             Supplier<StompProtocol<T>> protocolFactory,
-            Supplier<StompEncoderDecoder<T>> readerFactory) {
+            Supplier<StompEncoderDecoder> readerFactory) {
 
         this.pool = new StompActorThreadPool(numThreads);
         this.port = port;

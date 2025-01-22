@@ -14,7 +14,7 @@ public abstract class StompTPCServer<T> implements StompServerInterface<T> {
 
   private final int port;
     private final Supplier<StompProtocol<T>> protocolFactory;
-    private final Supplier<StompEncoderDecoder<T>> encdecFactory;
+    private final Supplier<StompEncoderDecoder> encdecFactory;
     private ServerSocket sock;
     private StompConnections connections;
     private int idClient = 1;
@@ -22,7 +22,7 @@ public abstract class StompTPCServer<T> implements StompServerInterface<T> {
     public StompTPCServer(
             int port,
             Supplier<StompProtocol<T>> protocolFactory,
-            Supplier<StompEncoderDecoder<T>> encdecFactory) {
+            Supplier<StompEncoderDecoder> encdecFactory) {
 
         this.port = port;
         this.protocolFactory = protocolFactory;

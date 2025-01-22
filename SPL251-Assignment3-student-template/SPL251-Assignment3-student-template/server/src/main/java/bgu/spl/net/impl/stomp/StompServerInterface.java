@@ -23,7 +23,7 @@ public interface StompServerInterface<T> extends Closeable {
     public static <T> StompServerInterface<T>  StompTPCServer(
             int port,
             Supplier<StompProtocol<T> > protocolFactory,
-            Supplier<StompEncoderDecoder<T> > encoderDecoderFactory) {
+            Supplier<StompEncoderDecoder> encoderDecoderFactory) {
 
         return new StompTPCServer<T>(port, protocolFactory, encoderDecoderFactory) {
             @Override
@@ -47,7 +47,7 @@ public interface StompServerInterface<T> extends Closeable {
             int nthreads,
             int port,
             Supplier<StompProtocol<T>> protocolFactory,
-            Supplier<StompEncoderDecoder<T>> encoderDecoderFactory) {
+            Supplier<StompEncoderDecoder> encoderDecoderFactory) {
         return new StompReactor<T>(nthreads, port, protocolFactory, encoderDecoderFactory);
     }
 
